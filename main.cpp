@@ -9,8 +9,6 @@
 #include <imgui.h>
 #include <math.h>
 
-#include <Novice.h>
-
 struct Vector3 {
     float x;
     float y;
@@ -24,6 +22,20 @@ struct Sphere {
     float radius;
     int color;
 };
+
+static const int krowheight = 20;
+static const int kcolumnwidth = 60;
+
+void MatrixScreenPrintf(int x, int y, const Matrix4x4& matrix, const char* num)
+{
+
+    Novice::ScreenPrintf(x, y, "%s", num);
+    for (int row = 0; row < 4; ++row) {
+        for (int column = 0; column < 4; ++column) {
+            Novice::ScreenPrintf(x + column * kcolumnwidth, (y + row * krowheight) + 20, "%6.03f", matrix.m[row][column]);
+        }
+    }
+}
 
 Vector3 add(const Vector3& v1, const Vector3& v2)
 {
@@ -225,9 +237,35 @@ Vector3 operator*(const Vector3& v, float s) { return s * v; }
 Vector3 operator/(const Vector3& v, float s) { return Multiply(1.0f / s, v); }
 Matrix4x4 operator*(const Matrix4x4& m1, const Matrix4x4& m2) { return Multiply(m1, m2); }
 
+Matrix4x4 MakeRotateAxisAngle(const Vector3& axis, float angle)
+{
+    Vector3 n = Normalize(axis);
+    float cos = cosf(angle);
+    float sin = sinf(angle);
+    float i = 1.0f - cos;
 
+    Matrix4x4 m {};
 
+    m.m[0][0] = n.x * n.x * i + cos;
+    m.m[0][1] = n.x * n.y * i + n.z * sin;
+    m.m[0][2] = n.x * n.z * i - n.y * sin;
+    m.m[0][3] = 0.0f;
 
+    m.m[1][0] = n.y * n.x * i - n.z * sin;
+    m.m[1][1] = n.y * n.y * i + cos;
+    m.m[1][2] = n.y * n.z * i + n.x * sin;
+    m.m[1][3] = 0.0f;
+
+    m.m[2][0] = n.z * n.x * i + n.y * sin;
+    m.m[2][1] = n.z * n.y * i - n.x * sin;
+    m.m[2][2] = n.z * n.z * i + cos;
+    m.m[2][3] = 0.0f;
+
+    m.m[3][0] = m.m[3][1] = m.m[3][2] = 0.0f;
+    m.m[3][3] = 1.0f;
+
+    return m;
+}
 
 const char kWindowTitle[] = "LE2C_03_イケダ_タクミ";
 
@@ -242,15 +280,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
     char keys[256] = { 0 };
     char preKeys[256] = { 0 };
 
-  
-
-
-
-
-
-
-
-
+    Vector3 axis = Normalize({ 1.0f, 1.0f, 1.0f });
+    float angle = 0.44f;
+    Matrix4x4 rotateMatrix = MakeRotateAxisAngle(axis, angle);
 
     // ウィンドウの×ボタンが押されるまでループ
     while (Novice::ProcessMessage() == 0) {
@@ -272,6 +304,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
         ///
         /// ↓描画処理ここから
         ///
+
+        MatrixScreenPrintf(0, 0, rotateMatrix, "rotateMAtrix");
 
         ///
         /// ↑描画処理ここまで
