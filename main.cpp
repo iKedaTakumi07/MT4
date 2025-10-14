@@ -97,6 +97,15 @@ Vector3 Multiply(const float& m2, const Vector3& m1)
 
     return num;
 }
+Vector3 Multiply(const Vector3& m2, const Vector3& m1)
+{
+    Vector3 num;
+    num.x = m1.x * m2.x;
+    num.y = m1.y * m2.y;
+    num.z = m1.z * m2.z;
+
+    return num;
+}
 
 Matrix4x4 Inverse(const Matrix4x4& m)
 {
@@ -230,12 +239,15 @@ Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, f
     return num;
 }
 
+Vector3 operator-(const Vector3& v) { return Vector3(-v.x, -v.y, -v.z); }
+
 Vector3 operator+(const Vector3& v1, const Vector3& v2) { return add(v1, v2); }
 Vector3 operator-(const Vector3& v1, const Vector3& v2) { return Subtract(v1, v2); }
 Vector3 operator*(float v1, const Vector3& v2) { return Multiply(v1, v2); }
 Vector3 operator*(const Vector3& v, float s) { return s * v; }
 Vector3 operator/(const Vector3& v, float s) { return Multiply(1.0f / s, v); }
 Matrix4x4 operator*(const Matrix4x4& m1, const Matrix4x4& m2) { return Multiply(m1, m2); }
+Vector3 operator*(const Vector3& m1, const Vector3& m2) { return Multiply(m1, m2); }
 
 Matrix4x4 MakeRotateAxisAngle(const Vector3& axis, float angle)
 {
@@ -267,6 +279,92 @@ Matrix4x4 MakeRotateAxisAngle(const Vector3& axis, float angle)
     return m;
 }
 
+Matrix4x4 DirectionToDirection(const Vector3& from, const Vector3& to)
+{
+    // 1 c*v
+    //  fromとtoのクロス積の結果を入れたvector3の変数を作る
+
+    // 2 cos
+    //  floatの変数に、uとvの内積を入れる
+
+    // 3 sin
+    //  floatの変数に、uとvのクロス積の長さを入れる
+
+    // 4
+    //  if文を作成
+    //  反転行列なら(u.x ≠ 0 || u.y ≠0の場合)と(u.x ≠ 0 || u.z ≠0の場合)でif文を書く
+    //  どちらも当てはならないならassretではじく
+    //  反転行列じゃないなら
+    // 1の求めたクロス積を正規化下内容がnになる。
+
+    Vector3 u = from;
+    Vector3 v = to;
+
+    Matrix4x4 m {};
+
+    Vector3 cross = Cross(u, v);
+    float cos = Dot(u, v);
+    float sin = Length(Cross(u, v));
+
+    if (cos == -1.0f) {
+        if (u.x != 0 || u.y != 0) {
+            Vector3 axis;
+            axis = { u.y, -u.x, 0.0f };
+
+            axis = Normalize(axis);
+
+            Vector3 n = axis;
+
+            Matrix4x4 rotate180 = {
+                -1 + 2 * n.x * n.x, 2 * n.x * n.y, 2 * n.x * n.z, 0,
+                2 * n.y * n.x, -1 + 2 * n.y * n.y, 2 * n.y * n.z, 0,
+                2 * n.z * n.x, 2 * n.z * n.y, -1 + 2 * n.z * n.z, 0,
+                0, 0, 0, 1
+            };
+            return rotate180;
+        } else if (u.z != 0 || u.x != 0) {
+            Vector3 axis;
+            axis = { u.z, 0.0f, -u.x };
+
+            axis = Normalize(axis);
+
+            Vector3 n = axis;
+
+            Matrix4x4 rotate180 = {
+                -1 + 2 * n.x * n.x, 2 * n.x * n.y, 2 * n.x * n.z, 0,
+                2 * n.y * n.x, -1 + 2 * n.y * n.y, 2 * n.y * n.z, 0,
+                2 * n.z * n.x, 2 * n.z * n.y, -1 + 2 * n.z * n.z, 0,
+                0, 0, 0, 1
+            };
+            return rotate180;
+        }
+    }
+
+    Vector3 n = Normalize(cross);
+
+    float i = 1.0f - cos;
+
+    m.m[0][0] = (n.x * n.x) * i + cos;
+    m.m[0][1] = (n.x * n.y) * i + n.z * sin;
+    m.m[0][2] = (n.x * n.z) * i - n.y * sin;
+    m.m[0][3] = 0.0f;
+
+    m.m[1][0] = n.y * n.x * i - n.z * sin;
+    m.m[1][1] = n.y * n.y * i + cos;
+    m.m[1][2] = n.y * n.z * i + n.x * sin;
+    m.m[1][3] = 0.0f;
+
+    m.m[2][0] = n.z * n.x * i + n.y * sin;
+    m.m[2][1] = n.z * n.y * i - n.x * sin;
+    m.m[2][2] = n.z * n.z * i + cos;
+    m.m[2][3] = 0.0f;
+
+    m.m[3][0] = m.m[3][1] = m.m[3][2] = 0.0f;
+    m.m[3][3] = 1.0f;
+
+    return m;
+}
+
 const char kWindowTitle[] = "LE2C_03_イケダ_タクミ";
 
 // Windowsアプリでのエントリーポイント(main関数)
@@ -280,9 +378,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
     char keys[256] = { 0 };
     char preKeys[256] = { 0 };
 
-    Vector3 axis = Normalize({ 1.0f, 1.0f, 1.0f });
-    float angle = 0.44f;
-    Matrix4x4 rotateMatrix = MakeRotateAxisAngle(axis, angle);
+    Vector3 from0 = Normalize(Vector3 { 1.0f, 0.7f, 0.5f });
+    Vector3 to0 = -from0;
+    Vector3 from1 = Normalize(Vector3 { -0.6f, 0.9f, 0.2f });
+    Vector3 to1 = Normalize(Vector3 { 0.4f, 0.7f - 0.5f });
+    Matrix4x4 rotateMatrix0 = DirectionToDirection(Normalize(Vector3 { 1.0f, 0.0f, 0.0f }), Normalize(Vector3 { -1.0f, 0.0f, 0.0f }));
+    Matrix4x4 rotateMatrix1 = DirectionToDirection(from0, to0);
+    Matrix4x4 rotateMatrix2 = DirectionToDirection(from1, to1);
 
     // ウィンドウの×ボタンが押されるまでループ
     while (Novice::ProcessMessage() == 0) {
@@ -305,7 +407,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
         /// ↓描画処理ここから
         ///
 
-        MatrixScreenPrintf(0, 0, rotateMatrix, "rotateMAtrix");
+        MatrixScreenPrintf(0, 0, rotateMatrix0, "rotateMatrix0");
+        MatrixScreenPrintf(0, krowheight * 5, rotateMatrix1, "rotateMatrix1");
+        MatrixScreenPrintf(0, krowheight * 10, rotateMatrix2, "rotateMatrix2");
 
         ///
         /// ↑描画処理ここまで
