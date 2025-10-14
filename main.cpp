@@ -305,6 +305,7 @@ Matrix4x4 DirectionToDirection(const Vector3& from, const Vector3& to)
     Vector3 cross = Cross(u, v);
     float cos = Dot(u, v);
     float sin = Length(Cross(u, v));
+    float i = 1.0f - cos;
 
     if (cos == -1.0f) {
         if (u.x != 0 || u.y != 0) {
@@ -315,13 +316,25 @@ Matrix4x4 DirectionToDirection(const Vector3& from, const Vector3& to)
 
             Vector3 n = axis;
 
-            Matrix4x4 rotate180 = {
-                -1 + 2 * n.x * n.x, 2 * n.x * n.y, 2 * n.x * n.z, 0,
-                2 * n.y * n.x, -1 + 2 * n.y * n.y, 2 * n.y * n.z, 0,
-                2 * n.z * n.x, 2 * n.z * n.y, -1 + 2 * n.z * n.z, 0,
-                0, 0, 0, 1
-            };
-            return rotate180;
+            m.m[0][0] = (n.x * n.x) * i + cos;
+            m.m[0][1] = (n.x * n.y) * i + n.z * sin;
+            m.m[0][2] = (n.x * n.z) * i - n.y * sin;
+            m.m[0][3] = 0.0f;
+
+            m.m[1][0] = n.y * n.x * i - n.z * sin;
+            m.m[1][1] = n.y * n.y * i + cos;
+            m.m[1][2] = n.y * n.z * i + n.x * sin;
+            m.m[1][3] = 0.0f;
+
+            m.m[2][0] = n.z * n.x * i + n.y * sin;
+            m.m[2][1] = n.z * n.y * i - n.x * sin;
+            m.m[2][2] = n.z * n.z * i + cos;
+            m.m[2][3] = 0.0f;
+
+            m.m[3][0] = m.m[3][1] = m.m[3][2] = 0.0f;
+            m.m[3][3] = 1.0f;
+
+            return m;
         } else if (u.z != 0 || u.x != 0) {
             Vector3 axis;
             axis = { u.z, 0.0f, -u.x };
@@ -330,19 +343,28 @@ Matrix4x4 DirectionToDirection(const Vector3& from, const Vector3& to)
 
             Vector3 n = axis;
 
-            Matrix4x4 rotate180 = {
-                -1 + 2 * n.x * n.x, 2 * n.x * n.y, 2 * n.x * n.z, 0,
-                2 * n.y * n.x, -1 + 2 * n.y * n.y, 2 * n.y * n.z, 0,
-                2 * n.z * n.x, 2 * n.z * n.y, -1 + 2 * n.z * n.z, 0,
-                0, 0, 0, 1
-            };
-            return rotate180;
+            m.m[0][0] = (n.x * n.x) * i + cos;
+            m.m[0][1] = (n.x * n.y) * i + n.z * sin;
+            m.m[0][2] = (n.x * n.z) * i - n.y * sin;
+            m.m[0][3] = 0.0f;
+
+            m.m[1][0] = n.y * n.x * i - n.z * sin;
+            m.m[1][1] = n.y * n.y * i + cos;
+            m.m[1][2] = n.y * n.z * i + n.x * sin;
+            m.m[1][3] = 0.0f;
+
+            m.m[2][0] = n.z * n.x * i + n.y * sin;
+            m.m[2][1] = n.z * n.y * i - n.x * sin;
+            m.m[2][2] = n.z * n.z * i + cos;
+            m.m[2][3] = 0.0f;
+
+            m.m[3][0] = m.m[3][1] = m.m[3][2] = 0.0f;
+            m.m[3][3] = 1.0f;
+            return m;
         }
     }
 
     Vector3 n = Normalize(cross);
-
-    float i = 1.0f - cos;
 
     m.m[0][0] = (n.x * n.x) * i + cos;
     m.m[0][1] = (n.x * n.y) * i + n.z * sin;
