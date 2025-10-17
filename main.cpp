@@ -297,18 +297,18 @@ Matrix4x4 DirectionToDirection(const Vector3& from, const Vector3& to)
     //  反転行列じゃないなら
     // 1の求めたクロス積を正規化下内容がnになる。
 
-    Vector3 u = from;
-    Vector3 v = to;
+    Vector3 u = Normalize(from);
+    Vector3 v = Normalize(to);
 
     Matrix4x4 m {};
 
-    Vector3 cross = Cross(u, v);
+    Vector3 cross = Normalize(Cross(u, v));
     float cos = Dot(u, v);
     float sin = Length(Cross(u, v));
     float i = 1.0f - cos;
 
     if (cos == -1.0f) {
-        if (u.x != 0 || u.y != 0) {
+        if (u.x != 0.0f || u.y != 0.0f) {
             Vector3 axis;
             axis = { u.y, -u.x, 0.0f };
 
@@ -361,24 +361,24 @@ Matrix4x4 DirectionToDirection(const Vector3& from, const Vector3& to)
             m.m[3][0] = m.m[3][1] = m.m[3][2] = 0.0f;
             m.m[3][3] = 1.0f;
             return m;
+        } else {
+            assert(cos);
         }
     }
 
-    Vector3 n = Normalize(cross);
-
-    m.m[0][0] = (n.x * n.x) * i + cos;
-    m.m[0][1] = (n.x * n.y) * i + n.z * sin;
-    m.m[0][2] = (n.x * n.z) * i - n.y * sin;
+    m.m[0][0] = (cross.x * cross.x) * i + cos;
+    m.m[0][1] = (cross.x * cross.y) * i + cross.z * sin;
+    m.m[0][2] = (cross.x * cross.z) * i - cross.y * sin;
     m.m[0][3] = 0.0f;
 
-    m.m[1][0] = n.y * n.x * i - n.z * sin;
-    m.m[1][1] = n.y * n.y * i + cos;
-    m.m[1][2] = n.y * n.z * i + n.x * sin;
+    m.m[1][0] = (cross.y * cross.x) * i - cross.z * sin;
+    m.m[1][1] = (cross.y * cross.y) * i + cos;
+    m.m[1][2] = (cross.y * cross.z) * i + cross.x * sin;
     m.m[1][3] = 0.0f;
 
-    m.m[2][0] = n.z * n.x * i + n.y * sin;
-    m.m[2][1] = n.z * n.y * i - n.x * sin;
-    m.m[2][2] = n.z * n.z * i + cos;
+    m.m[2][0] = (cross.z * cross.x) * i + cross.y * sin;
+    m.m[2][1] = (cross.z * cross.y) * i - cross.x * sin;
+    m.m[2][2] = (cross.z * cross.z) * i + cos;
     m.m[2][3] = 0.0f;
 
     m.m[3][0] = m.m[3][1] = m.m[3][2] = 0.0f;
@@ -403,7 +403,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
     Vector3 from0 = Normalize(Vector3 { 1.0f, 0.7f, 0.5f });
     Vector3 to0 = -from0;
     Vector3 from1 = Normalize(Vector3 { -0.6f, 0.9f, 0.2f });
-    Vector3 to1 = Normalize(Vector3 { 0.4f, 0.7f - 0.5f });
+    Vector3 to1 = Normalize(Vector3 { 0.4f, 0.7f , -0.5f });
     Matrix4x4 rotateMatrix0 = DirectionToDirection(Normalize(Vector3 { 1.0f, 0.0f, 0.0f }), Normalize(Vector3 { -1.0f, 0.0f, 0.0f }));
     Matrix4x4 rotateMatrix1 = DirectionToDirection(from0, to0);
     Matrix4x4 rotateMatrix2 = DirectionToDirection(from1, to1);
