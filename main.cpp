@@ -22,6 +22,12 @@ struct Sphere {
     float radius;
     int color;
 };
+struct Quaternion {
+    float x;
+    float y;
+    float z;
+    float w;
+};
 
 static const int krowheight = 20;
 static const int kcolumnwidth = 60;
@@ -106,6 +112,28 @@ Vector3 Multiply(const Vector3& m2, const Vector3& m1)
 
     return num;
 }
+
+// 乗法単位元
+Quaternion IdentityQuaternion()
+{
+}
+// 共役
+Quaternion Conjugation(const Quaternion& v)
+{
+}
+// ノルム
+float Norm(const Quaternion& v)
+{
+}
+Quaternion Normalize(const Quaternion& v)
+{
+}
+// 逆
+Quaternion Inverse(const Quaternion& v)
+{
+}
+// 積
+Quaternion Multiply(const Quaternion& v1, const Quaternion& v2) { }
 
 Matrix4x4 Inverse(const Matrix4x4& m)
 {
@@ -400,13 +428,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
     char keys[256] = { 0 };
     char preKeys[256] = { 0 };
 
-    Vector3 from0 = Normalize(Vector3 { 1.0f, 0.7f, 0.5f });
-    Vector3 to0 = -from0;
-    Vector3 from1 = Normalize(Vector3 { -0.6f, 0.9f, 0.2f });
-    Vector3 to1 = Normalize(Vector3 { 0.4f, 0.7f , -0.5f });
-    Matrix4x4 rotateMatrix0 = DirectionToDirection(Normalize(Vector3 { 1.0f, 0.0f, 0.0f }), Normalize(Vector3 { -1.0f, 0.0f, 0.0f }));
-    Matrix4x4 rotateMatrix1 = DirectionToDirection(from0, to0);
-    Matrix4x4 rotateMatrix2 = DirectionToDirection(from1, to1);
+    Quaternion q1 = { 2.0f, 3.0f, 4.0f, 5.0f };
+    Quaternion q2 = { 1.0f, 3.0f, 5.0f, 2.0f };
+    Quaternion indentiy = IdentityQuaternion();
+    Quaternion conj = Conjugation(q1);
+    Quaternion inv = Inverse(q1);
+    Quaternion normal = Normalize(q1);
+    Quaternion mul1 = Multiply(q1, q2);
+    Quaternion mul2 = Multiply(q1, q2);
+    float norm = Norm(q1);
 
     // ウィンドウの×ボタンが押されるまでループ
     while (Novice::ProcessMessage() == 0) {
@@ -428,10 +458,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
         ///
         /// ↓描画処理ここから
         ///
-
-        MatrixScreenPrintf(0, 0, rotateMatrix0, "rotateMatrix0");
-        MatrixScreenPrintf(0, krowheight * 5, rotateMatrix1, "rotateMatrix1");
-        MatrixScreenPrintf(0, krowheight * 10, rotateMatrix2, "rotateMatrix2");
 
         ///
         /// ↑描画処理ここまで
