@@ -32,6 +32,16 @@ struct Quaternion {
 static const int krowheight = 20;
 static const int kcolumnwidth = 60;
 
+static const int kcolumnwith = 60;
+void VectorScreenPrintf(int x, int y, const Quaternion& vector, const char* label)
+{
+    Novice::ScreenPrintf(x, y, "%0.2f", vector.x);
+    Novice::ScreenPrintf(x + kcolumnwith, y, "%0.2f", vector.y);
+    Novice::ScreenPrintf(x + kcolumnwith * 2, y, "%0.2f", vector.z);
+    Novice::ScreenPrintf(x + kcolumnwith * 3, y, "%0.2f", vector.w);
+    Novice::ScreenPrintf(x + kcolumnwith * 4, y, "%s", label);
+}
+
 void MatrixScreenPrintf(int x, int y, const Matrix4x4& matrix, const char* num)
 {
 
@@ -113,27 +123,63 @@ Vector3 Multiply(const Vector3& m2, const Vector3& m1)
     return num;
 }
 
-// 乗法単位元
+// 単位Quaternion
 Quaternion IdentityQuaternion()
 {
+    return { 0.0f, 0.0f, 0.0f, 1.0f };
 }
-// 共役
+// 共役Quaternion
 Quaternion Conjugation(const Quaternion& v)
 {
+    return { -v.x, -v.y, -v.z, v.w };
 }
-// ノルム
+//  ノルム
 float Norm(const Quaternion& v)
 {
+    float norm;
+    norm = sqrtf(v.w * v.w + v.x * v.x + v.y * v.y + v.z * v.z);
+
+    return norm;
 }
+// 正規化
 Quaternion Normalize(const Quaternion& v)
 {
+    float norm;
+    Quaternion num;
+    norm = sqrtf(v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w);
+    num.x = v.x / norm;
+    num.y = v.y / norm;
+    num.z = v.z / norm;
+    num.w = v.w / norm;
+
+    return num;
 }
-// 逆
+// 逆Quaternion
 Quaternion Inverse(const Quaternion& v)
 {
+    float normSq = v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w;
+    if (normSq == 0.0f) {
+        //アサ―と
+        assert(normSq, "0.0f!!!!!");
+    }
+
+    Quaternion result;
+    result.x = -v.x / normSq;
+    result.y = -v.y / normSq;
+    result.z = -v.z / normSq;
+    result.w = v.w / normSq;
+    return result;
 }
-// 積
-Quaternion Multiply(const Quaternion& v1, const Quaternion& v2) { }
+// Quaternionの積
+Quaternion Multiply(const Quaternion& v1, const Quaternion& v2)
+{
+    Quaternion result;
+    result.x = v1.w * v2.x + v1.x * v2.w + v1.y * v2.z - v1.z * v2.y;
+    result.y = v1.w * v2.y - v1.x * v2.z + v1.y * v2.w + v1.z * v2.x;
+    result.z = v1.w * v2.z + v1.x * v2.y - v1.y * v2.x + v1.z * v2.w;
+    result.w = v1.w * v2.w - v1.x * v2.x - v1.y * v2.y - v1.z * v2.z;
+    return result;
+}
 
 Matrix4x4 Inverse(const Matrix4x4& m)
 {
@@ -309,21 +355,6 @@ Matrix4x4 MakeRotateAxisAngle(const Vector3& axis, float angle)
 
 Matrix4x4 DirectionToDirection(const Vector3& from, const Vector3& to)
 {
-    // 1 c*v
-    //  fromとtoのクロス積の結果を入れたvector3の変数を作る
-
-    // 2 cos
-    //  floatの変数に、uとvの内積を入れる
-
-    // 3 sin
-    //  floatの変数に、uとvのクロス積の長さを入れる
-
-    // 4
-    //  if文を作成
-    //  反転行列なら(u.x ≠ 0 || u.y ≠0の場合)と(u.x ≠ 0 || u.z ≠0の場合)でif文を書く
-    //  どちらも当てはならないならassretではじく
-    //  反転行列じゃないなら
-    // 1の求めたクロス積を正規化下内容がnになる。
 
     Vector3 u = Normalize(from);
     Vector3 v = Normalize(to);
@@ -428,7 +459,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
     char keys[256] = { 0 };
     char preKeys[256] = { 0 };
 
-    Quaternion q1 = { 2.0f, 3.0f, 4.0f, 5.0f };
+    Quaternion q1 = { 2.0f, 3.0f, 4.0f, 1.0f };
     Quaternion q2 = { 1.0f, 3.0f, 5.0f, 2.0f };
     Quaternion indentiy = IdentityQuaternion();
     Quaternion conj = Conjugation(q1);
@@ -458,6 +489,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
         ///
         /// ↓描画処理ここから
         ///
+
+        VectorScreenPrintf(0, 0, indentiy, "indentiy");
+        VectorScreenPrintf(0, 20, conj, "conj");
+        VectorScreenPrintf(0, 40, inv, "Inverse");
+        VectorScreenPrintf(0, 60, normal, "Normalize");
+        VectorScreenPrintf(0, 80, mul1, "Multiply(q1, q2)");
+        VectorScreenPrintf(0, 100, mul2, "Multiply(q2, q1)");
+        Novice::ScreenPrintf(0, 120, "%0.2f", norm);
+        Novice::ScreenPrintf(240, 120, "norm");
 
         ///
         /// ↑描画処理ここまで
