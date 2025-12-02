@@ -68,6 +68,15 @@ Vector3 add(const Vector3& v1, const Vector3& v2)
     num.z = v1.z + v2.z;
     return num;
 }
+Quaternion add(const Quaternion& v1, const Quaternion& v2)
+{
+    Quaternion num;
+    num.x = v1.x + v2.x;
+    num.y = v1.y + v2.y;
+    num.z = v1.z + v2.z;
+    num.w = v1.w + v1.w;
+    return num;
+}
 Vector3 Subtract(const Vector3& v1, const Vector3& v2)
 {
     Vector3 num;
@@ -80,6 +89,11 @@ float Dot(const Vector3& v1, const Vector3& v2)
 {
     float num;
     return num = v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+}
+float Dot(const Quaternion& a, const Quaternion& b)
+{
+    float num;
+    return num = a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
 }
 float Length(const Vector3& v)
 {
@@ -182,6 +196,18 @@ Quaternion Multiply(const Quaternion& v1, const Quaternion& v2)
     return result;
 }
 
+Quaternion operator-(const Quaternion& v) { return Quaternion(-v.x, -v.y, -v.z, -v.z); }
+Quaternion operator*(const Quaternion& m1, const Quaternion& m2) { return Multiply(m1, m2); }
+Quaternion operator+(const Quaternion& v1, const Quaternion& v2) { return add(v1, v2); }
+Vector3 operator-(const Vector3& v) { return Vector3(-v.x, -v.y, -v.z); }
+Vector3 operator+(const Vector3& v1, const Vector3& v2) { return add(v1, v2); }
+Vector3 operator-(const Vector3& v1, const Vector3& v2) { return Subtract(v1, v2); }
+Vector3 operator*(float v1, const Vector3& v2) { return Multiply(v1, v2); }
+Vector3 operator*(const Vector3& v, float s) { return s * v; }
+Vector3 operator/(const Vector3& v, float s) { return Multiply(1.0f / s, v); }
+Matrix4x4 operator*(const Matrix4x4& m1, const Matrix4x4& m2) { return Multiply(m1, m2); }
+Vector3 operator*(const Vector3& m1, const Vector3& m2) { return Multiply(m1, m2); }
+
 // 任意軸回転を表すQuaternionの生成
 Quaternion MakeRotateAxisAngleQuaternion(const Vector3& axis, float angle)
 {
@@ -236,6 +262,40 @@ Matrix4x4 MakeRotateMatrix(const Quaternion& quaternion)
     num.m[3][1] = 0.0f;
     num.m[3][2] = 0.0f;
     num.m[3][3] = 1.0f;
+
+    return num;
+}
+
+// 球面線形補間
+Quaternion Slerp(const Quaternion& q0, const Quaternion& q1, float t)
+{
+    float dot = Dot(q0, q1); // Q0とq1の内積
+    Quaternion q;
+
+    q = q0;
+
+    if (dot < 0) {
+        q = -q0; // もう片方の回転を利用する
+        dot = -dot;
+    }
+
+    // なす角を求める
+    float theta = std::acos(dot);
+    float sinTheta = std::sin(theta);
+
+    // thetaとsinを使って線形保管Scale0,scale1を求める
+
+    // ここで求めている係数をそのまま計算
+    float s0 = std::sin((1.0f - t) * theta) / sinTheta; // sin((1-t)θ)/sinθ
+    float s1 = std::sin(t * theta) / sinTheta; // sin(tθ)/sinθ
+
+    // それぞれの補間係数を利用して補間後のQuaternionを求める
+    Quaternion num; 
+
+    num = { s0 * q.x + s1 * q1.x,
+        s0 * q.y + s1 * q1.y,
+        s0 * q.z + s1 * q1.z,
+        s0 * q.w + s1 * q1.w };
 
     return num;
 }
@@ -386,16 +446,6 @@ Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, f
     return num;
 }
 
-Vector3 operator-(const Vector3& v) { return Vector3(-v.x, -v.y, -v.z); }
-
-Vector3 operator+(const Vector3& v1, const Vector3& v2) { return add(v1, v2); }
-Vector3 operator-(const Vector3& v1, const Vector3& v2) { return Subtract(v1, v2); }
-Vector3 operator*(float v1, const Vector3& v2) { return Multiply(v1, v2); }
-Vector3 operator*(const Vector3& v, float s) { return s * v; }
-Vector3 operator/(const Vector3& v, float s) { return Multiply(1.0f / s, v); }
-Matrix4x4 operator*(const Matrix4x4& m1, const Matrix4x4& m2) { return Multiply(m1, m2); }
-Vector3 operator*(const Vector3& m1, const Vector3& m2) { return Multiply(m1, m2); }
-
 Matrix4x4 MakeRotateAxisAngle(const Vector3& axis, float angle)
 {
     Vector3 n = Normalize(axis);
@@ -532,11 +582,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
     char keys[256] = { 0 };
     char preKeys[256] = { 0 };
 
-    Quaternion rotation = MakeRotateAxisAngleQuaternion(Normalize(Vector3 { 1.0f, 0.4f, -0.2f }), 0.45f);
-    Vector3 pointY = { 2.1f, -0.9f, 1.3f };
-    Matrix4x4 rotateMatrix = MakeRotateMatrix(rotation);
-    Vector3 rotateByQuaternion = RotateVector(pointY, rotation);
-    Vector3 rotateByMatrix = Transform(pointY, rotateMatrix);
+    Quaternion rotation0 = MakeRotateAxisAngleQuaternion({ 0.71f, 0.71f, 0.0f }, 0.3f);
+    Quaternion rotation1 = MakeRotateAxisAngleQuaternion({ 0.71f, 0.0f, 0.71f }, 3.141692f);
+
+    Quaternion interpolate0 = Slerp(rotation0, rotation1, 0.0f);
+    Quaternion interpolate1 = Slerp(rotation0, rotation1, 0.3f);
+    Quaternion interpolate2 = Slerp(rotation0, rotation1, 0.5f);
+    Quaternion interpolate3 = Slerp(rotation0, rotation1, 0.7f);
+    Quaternion interpolate4 = Slerp(rotation0, rotation1, 1.0f);
 
     // ウィンドウの×ボタンが押されるまでループ
     while (Novice::ProcessMessage() == 0) {
@@ -559,10 +612,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
         /// ↓描画処理ここから
         ///
 
-        QuaternionScreenPrintf(0, krowheight * 0, rotation, ": rotation");
-        MatrixScreenPrintf(0, krowheight * 1, rotateMatrix, "rotateMatrix");
-        VectorScreenPrintf(0, krowheight * 6, rotateByQuaternion, "rotateByQuaternion");
-        VectorScreenPrintf(0, krowheight * 7, rotateByMatrix, "rotateByMatrix");
+        QuaternionScreenPrintf(0, krowheight * 0, interpolate0, ": interpolate0, Slerp(rotation0, rotation1, 0.0f);");
+        QuaternionScreenPrintf(0, krowheight * 1, interpolate1, ": interpolate0, Slerp(rotation0, rotation1, 0.3f);");
+        QuaternionScreenPrintf(0, krowheight * 2, interpolate2, ": interpolate0, Slerp(rotation0, rotation1, 0.5f);");
+        QuaternionScreenPrintf(0, krowheight * 3, interpolate3, ": interpolate0, Slerp(rotation0, rotation1, 0.7f);");
+        QuaternionScreenPrintf(0, krowheight * 4, interpolate4, ": interpolate0, Slerp(rotation0, rotation1, 1.0f);");
         ///
         /// ↑描画処理ここまで
         ///
